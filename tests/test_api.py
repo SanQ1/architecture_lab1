@@ -34,6 +34,12 @@ class TestIntegrationAPI:
         assert response.status_code == 404
         assert response.json['message'] == "Товар не знайдено"
 
+    def test_create_order_success(self, auth_client):
+        response = auth_client.post('/orders',
+            json={"items": ["product1", "product2"]})
+
+        assert response.status_code == 201
+
     def test_invalid_product_data(self, auth_client):
         """Перевірка інваріантів: невалідні дані товару повертають 400"""
         response = auth_client.post('/products', 

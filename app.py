@@ -5,6 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 app = Flask(__name__)
+app.json.ensure_ascii = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://user:password@localhost:5432/db'
 app.config['JWT_SECRET_KEY'] = 'adkewla;sldkgkdsa;ejglaskejgaset'
 db = SQLAlchemy(app)
@@ -86,22 +87,49 @@ def get_products():
 
 
 @app.route('/orders', methods=['POST'])
+@jwt_required()
 def create_order():
     data = request.json
-    if not data.get('items'):
-        return jsonify({"message": "Order is empty"}), 400
-    new_order = Order(user_id=data['user_id'], items=str(data['items']))
+
+    items = data.get('items')
+    if not items:
+        return jsonify({"message": "Замовлення не може бути пустим"}), 400
+
+    if isinstance(items, list):
+        items_str = ", ".join(items)
+    else:
+        items_str = str(items)
+
+    if len(items_str) > 200:
+        return jsonify({"message": "Замовлення занадто велике"}), 400
+
+    current_user_id = get_jwt_identity()
+
+    new_order = Order(user_id=int(current_user_id), items=items_str)
     db.session.add(new_order)
     db.session.commit()
-    return jsonify({"message": "Order created"}), 201
 
-@app.route('/orders/<int:id>/pay', methods=['POST'])
-def pay_order(id):
-    order = Order.query.get(id)
+    return jsonify({"message": "Замовлення створено", "order_id": new_order.id}), 201
+
+
+@app.route('/orders/<int:order_id>', methods=['DELETE'])
+@jwt_required()
+def delete_order(order_id):
+    current_user_id = get_jwt_identity()
+
+    order = db.session.get(Order, order_id)
+
     if not order:
-        return jsonify({"message": "Order not found"}), 404
-    # логіка оплати
-    return jsonify({"message": "Order paid"}), 200
+        return jsonify({"message": "Замовлення не існує"}), 404
+
+    # чи належить замовлення цьому користувачу
+    if str(order.user_id) != current_user_id:
+        return jsonify({"message": "Користувач не існує або доступ заборонено"}), 409
+
+    db.session.delete(order)
+    db.session.commit()
+
+    return jsonify({"message": "Замовлення видалено"}), 200
 
 
 if __name__ == '__main__':
