@@ -1,10 +1,15 @@
 #!/bin/bash
 
+set -e
+
 # перевірка наявності Docker
 if ! command -v docker &> /dev/null; then
     echo "Docker не встановлено. Будь ласка, встановіть Docker для роботи з БД."
     exit 1
 fi
+
+sudo apt update && sudo apt upgrade -y
+sudo apt install python3.13-venv -y
 
 echo "Створення віртуального середовища..."
 python3 -m venv venv
