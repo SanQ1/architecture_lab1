@@ -58,7 +58,6 @@ curl -X DELETE http://localhost:5000/orders/1 \
 Додавання товару без токена(приведе до помилки):
 ```bash
 curl -X POST http://localhost:5000/products \
-     -H "Authorization: Bearer $TOKEN" \
      -H "Content-Type: application/json" \
      -d '{"name": "Mouse", "price": 3000}'
 ```
